@@ -1,0 +1,151 @@
+<!doctype html>
+
+<html lang="bn">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Telegram Promo Bot — Frontend (index.html)</title>
+  <style>
+    :root{--bg:#0f1724;--card:#111827;--accent:#06b6d4;--muted:#94a3b8;color-scheme:dark}
+    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{margin:0;background:linear-gradient(180deg,#071024 0%,#081426 100%);color:#e6eef6;padding:28px}
+    .wrap{max-width:980px;margin:0 auto}
+    header{display:flex;gap:16px;align-items:center;margin-bottom:20px}
+    h1{margin:0;font-size:20px}
+    .card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);margin-bottom:16px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:8px}
+    input,textarea,select,button{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:#0b1220;color:inherit}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    button.primary{background:linear-gradient(90deg,var(--accent),#60a5fa);color:#031124;border:none;font-weight:600}
+    .muted{color:var(--muted);font-size:13px}
+    .small{font-size:13px}
+    .tasks{display:grid;gap:8px}
+    .task{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:10px;border-radius:8px}
+    footer{margin-top:20px;color:var(--muted);font-size:13px}
+    .notice{background:#08303b;padding:10px;border-radius:8px;color:#bdeaf6}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'><rect rx='8' width='36' height='36' fill='%2306b6d4'/></svg>" alt="logo" style="width:44px;height:44px;border-radius:10px"/>
+      <div>
+        <h1>Telegram Promo Bot — Frontend (index.html)</h1>
+        <div class="muted">Owner ↔ User interface (mock). Backend required for full functionality.</div>
+      </div>
+    </header><div class="card">
+  <strong>Owner: Add Channel / Campaign</strong>
+  <p class="muted small">Owner এখানে চ্যানেল/গ্রুপ যোগ করবে। Backend এ /api/add-channel এ POST পাঠানো হবে।</p>
+  <label>Channel or Group Invite Link (t.me/... বা https://t.me/...)</label>
+  <input id="owner_link" placeholder="https://t.me/your_channel" />
+  <label style="margin-top:8px">Per-join Reward (৳) or token amount</label>
+  <div class="row">
+    <input id="owner_reward_bdt" placeholder="৳ 50" />
+    <input id="owner_reward_pepe" placeholder="PEPE amount (e.g. 37879)" />
+  </div>
+  <div style="margin-top:10px;display:flex;gap:8px">
+    <button class="primary" id="btn_add">Add Campaign</button>
+    <button id="btn_fake_add">Add (simulate)</button>
+  </div>
+  <p id="owner_msg" class="muted" style="margin-top:8px"></p>
+</div>
+
+<div class="card">
+  <strong>User: Available Tasks</strong>
+  <p class="muted small">User এখানে টাস্ক দেখে চ্যানেল/গ্রুপ join করে verify করলে রিওয়ার্ড পাবে। (ইন্টারঅ্যাকশনের জন্য backend লাগবে)</p>
+  <div id="tasks" class="tasks">
+    <!-- JS will populate tasks from /api/get-tasks or local demo -->
+  </div>
+</div>
+
+<div class="card">
+  <strong>Wallet / Balance (Demo)</strong>
+  <p class="muted small">Demo wallet to show balance after completing tasks. Real integration needs crypto wallet & server signing.</p>
+  <div style="display:flex;gap:10px;align-items:center">
+    <div style="flex:1">
+      <label>Your Account ID (phone or username)</label>
+      <input id="acct" placeholder="user123" />
+    </div>
+    <div style="width:160px"><label>Balance (PEPE)</label><input id="balance" disabled value="0"/></div>
+  </div>
+  <div style="margin-top:8px;display:flex;gap:8px">
+    <button id="btn_fetch_tasks">Refresh Tasks</button>
+    <button id="btn_withdraw">Request Withdraw</button>
+  </div>
+  <p id="wallet_msg" class="muted" style="margin-top:8px"></p>
+</div>
+
+<div class="card notice">
+  <strong>Important Notes (প্রয়োজনীয়)</strong>
+  <ul>
+    <li>এই frontend শুধুমাত্র UI. Telegram Bot এবং server-side verification (Bot token, webhooks/long-polling, Telegram API) লাগবে।</li>
+    <li>Browser থেকে সরাসরি Telegram Bot token ব্যবহার করা ঠিক না — সব টোকেন ও সিগনিং সার্ভারে রাখবেন।</li>
+    <li>Join verification: backend আপনার bot token দিয়ে <code>getChatMember</code> বা similar endpoint ব্যবহার করে যাচাই করবে।</li>
+    <li>ট্রান্সফার/পেমেন্ট মেকানিজম: আপনি ক্রিপ্টো ওয়ালেট (hot wallet) বা বিকাশ/রকেট ম্যানুয়াল দিয়ে দিতে পারেন।</li>
+  </ul>
+</div>
+
+<footer class="muted">Built: Demo UI — আপনি চান আমি backend (Node.js + Telegram) কোডও লিখে দেব?</footer>
+
+  </div><script>
+// Simple demo JS: keeps tasks in localStorage when owner 'adds' a campaign
+function $(id){return document.getElementById(id)}
+let tasks = JSON.parse(localStorage.getItem('demo_tasks')||'[]')
+function renderTasks(){
+  const wrap = $('tasks'); wrap.innerHTML=''
+  if(!tasks.length){ wrap.innerHTML='<div class="muted">No tasks yet. Owner add a campaign to simulate.</div>'; return }
+  tasks.forEach((t,idx)=>{
+    const el = document.createElement('div'); el.className='task'
+    el.innerHTML = `<strong>${t.link}</strong>
+      <div class="small muted">Reward: ${t.reward_bdt?('৳'+t.reward_bdt):('PEPE '+t.reward_pepe)}</div>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button onclick="doJoin(${idx})">I Joined — Verify</button>
+        <button onclick="previewJoin(${idx})">Preview Channel</button>
+      </div>`
+    wrap.appendChild(el)
+  })
+}
+
+function previewJoin(i){
+  const u = tasks[i].link; window.open(u,'_blank')
+}
+
+function doJoin(i){
+  const acct = $('acct').value || 'demo_user'
+  // In real app: call backend /api/verify-join?user=acct&link=tasks[i].link
+  // Demo: ask user to confirm they joined
+  if(!confirm('Confirm you have joined the channel/group?')) return
+  // credit balance
+  const reward = Number(tasks[i].reward_pepe||0)
+  if(!reward){ alert('This demo task has no token reward set. Owner should set reward_pepe.') ; return }
+  const bal = Number($('balance').value||0) + reward
+  $('balance').value = bal
+  $('wallet_msg').textContent = `Verified and credited ${reward} PEPE to ${acct}`
+}
+
+$('btn_add').addEventListener('click',async()=>{
+  const link = $('owner_link').value.trim();
+  const rbdt = $('owner_reward_bdt').value.trim();
+  const rpepe = $('owner_reward_pepe').value.trim();
+  if(!link){ $('owner_msg').textContent='Please enter channel invite link.'; return }
+  // In real app: POST to /api/add-channel with token auth
+  const newTask = {link:link, reward_bdt: rbdt||null, reward_pepe: rpepe||null, created:Date.now()}
+  tasks.unshift(newTask); localStorage.setItem('demo_tasks', JSON.stringify(tasks)); renderTasks(); $('owner_msg').textContent='Campaign added (demo).'
+})
+
+$('btn_fake_add').addEventListener('click',()=>{
+  const demo = {link:'https://t.me/demo_channel', reward_pepe: 37879, created:Date.now()}
+  tasks.unshift(demo); localStorage.setItem('demo_tasks', JSON.stringify(tasks)); renderTasks(); $('owner_msg').textContent='Demo campaign added.'
+})
+
+$('btn_fetch_tasks').addEventListener('click',renderTasks)
+$('btn_withdraw').addEventListener('click',()=>{
+  const amount = Number($('balance').value||0)
+  if(amount<1){ $('wallet_msg').textContent='Minimum withdraw 1 PEPE (demo)'; return }
+  // In real app: POST /api/withdraw -> admin process
+  $('wallet_msg').textContent = 'Withdraw request sent to admin (demo).'
+})
+
+renderTasks()
+</script></body>
+</html>
